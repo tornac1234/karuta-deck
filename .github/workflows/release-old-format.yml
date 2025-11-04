@@ -1,0 +1,41 @@
+name: Create a release for old format
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: pip install pillow numpy fpdf2
+
+    - name: Run format conversion
+      run: python .scripts/new-to-old-convert.py
+    
+    - name: Generate the printable pdf
+      run: python .scripts/gen-cards-pdf.py --output-path .
+
+    - name: Create zip archive
+      run: (cd build && zip -r ../deck.zip .)
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        files: |
+          deck.zip
+          deck.pdf
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
